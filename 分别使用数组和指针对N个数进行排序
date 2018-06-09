@@ -1,0 +1,80 @@
+1.使用数组
+#include<stdio.h>
+#include<stdlib.h>
+void sort(int arr[], int sz)
+{
+    int i = 0;
+    int j = 0;
+    for (i = 0; i < sz; i++)
+    {
+        for (j = 0; j < sz - i - 1; j++)
+        {
+            if (arr[j] > arr[j + 1])
+            {
+                int tmp = 0;
+                tmp = arr[j];
+                arr[j] = arr[i];
+                arr[i] = tmp;
+            }
+        }
+    }
+}
+
+void Print(int arr[], int sz)
+{
+    int i = 0;
+    for (i = 0; i < sz; i++)
+        printf("%d  ", arr[i]);
+    printf("\n");
+}
+int main()
+{
+    int arr[] = { 1, 2, 5, 7, 2, 8, 9, 0, 12, 45, 23, 29 };
+    int sz = sizeof(arr) / sizeof(arr[0]);
+    Print(arr, sz);
+    sort(arr, sz);
+    Print(arr, sz);
+    system("pause");
+    return 0;
+}
+
+2.使用指针
+#include<stdio.h>
+#include<stdlib.h>
+void sort(int *arr, int sz)
+{
+    int *p = NULL;
+    int *q = NULL;
+    for (p = arr; p < arr + sz; p++)
+    {
+        for (q = p; q < arr + sz; q++)
+        {
+            int tmp = 0;
+            if (*p > *q)
+            {
+                tmp = *p;
+                *p = *q;
+                *q = tmp;
+            }
+        }
+    }
+
+
+}
+void Print(int arr[], int sz)
+{
+    int i = 0;
+    for (i = 0; i < sz; i++)
+        printf("%d  ", arr[i]);
+    printf("\n");
+}
+int main()
+{
+    int arr[] = { 1, 2, 5, 7, 2, 8, 9, 0, 12, 45, 23, 29 };
+    int sz = sizeof(arr) / sizeof(arr[0]);
+    Print(arr, sz);
+    sort(arr, sz);
+    Print(arr, sz);
+    system("pause");
+    return 0;
+}
