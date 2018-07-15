@@ -1,0 +1,232 @@
+需要考虑的情况
+// 1.一般情况 
+int num = 0; 
+/* int i = 0; */
+// 2.换行问题 
+/* int i = 0; */int j = 0; 
+/* int i = 0; */ 
+int j = 0;
+// 3.匹配问题 
+/int i = 0;/*xxxxx/
+// 4.多行注释问题 
+/* 
+int i=0; 
+int j = 0; 
+int k = 0; 
+*/int k = 0;
+// 5.连续注释问题 
+/int a=0;//int b=0;/
+// 6.连续的**/问题 
+/*/
+// 7.C++注释问题 
+// /xxxxxxxxxxxx/
+
+
+
+代码
+头文件
+#ifndef __COMMENT_CONVERT_H__
+#define __COMMENT_CONVERT_H__
+#include<stdio.h>
+#include<stdlib.h>
+enum Status
+{
+    NUL_STATUS,//无状态
+    C_STATUS,//C状态
+    CPP_STATUS,//C++状态
+    END_STATUS//结束
+};
+void DoCommentWork(FILE*pfRead, FILE*pfWrite);
+void DoNulStatus(FILE*pfRead, FILE*pfWrite, enum Status *status);//无状态函数
+void DoCStatus(FILE*pfRead, FILE*pfWrite, enum Status *status);//C注释函数（函数的作用：遇到C注释，转换为C++注释）
+void DoCppStatus(FILE*pfRead, FILE*pfWrite, enum Status *status);//C++注释函数
+#endif//__COMMENT_CONVERT_H__
+
+
+测试函数test.c
+#include"CommentConvert.h"
+void test()
+{
+    CommentConvert();
+}
+int main()
+{
+    test();
+    system("pause");
+    return 0;
+}
+
+
+CommentConvert.c函数
+#define _CRT_SECURE_NO_WARNINGS
+#include"CommentConvert.h"
+void DoCppStatus(FILE*pfIn, FILE*pfOut, enum Status *status)
+{
+    int first = 0;
+    first = fgetc(pfIn);
+    switch (first)
+    {
+    case '\n'://遇到\n，把此字符放到输出流，然后状态转换为无状态
+        fputc(first, pfOut);
+        *status = NUL_STATUS;
+        break;
+    case EOF://表示已读到文件结尾，不用再放了，所以直接状态转换
+        fputc(first, pfOut);
+        *status = END_STATUS;
+        break;
+    default :
+        fputc(first, pfOut);
+        break;
+    }
+}
+
+void DoCStatus(FILE*pfIn, FILE*pfOut, enum Status *status)
+{
+    int first = 0;
+    int second = 0;
+    first = fgetc(pfIn);
+    switch (first)
+    {
+    case '*':
+    {
+                second = fgetc(pfIn);
+                switch (second)
+                {
+                case '*':
+                    fputc(first, pfOut);
+                    ungetc('*', pfIn);//如果再读到‘*’，需要返回到输入流
+                    break;
+                case '/'://直接转换为无状态
+                    *status = NUL_STATUS;
+                    break;
+                default :
+                    fputc(first, pfOut);
+                    fputc(second, pfOut);
+                    break;
+                }
+    }
+        break;
+    case '\n'://遇到换行，则需要放两个//到输出流
+        fputc(first, pfOut);
+        fputc('/', pfOut);
+        fputc('/', pfOut);
+        break;
+    case EOF://表示已读到文件结尾，不用再放了，所以直接状态转换
+        fputc(first, pfOut);
+        *status = END_STATUS;
+        break;
+    default :
+        fputc(first, pfOut);
+        break;
+    }
+}
+
+void DoNulStatus(FILE*pfIn, FILE*pfOut, enum Status *status)
+{
+    int first = 0;
+    int second = 0;
+    first = fgetc(pfIn);
+    switch (first)
+    {
+    case '/':
+    {
+                second = fgetc(pfIn);
+                switch (second)
+                {
+                case '*'://放两个 // 到输出流，然后再转换为C状态
+                    fputc('/', pfOut);
+                    fputc('/', pfOut);
+                    *status = C_STATUS;
+                    break;
+                case '/'://直接就是C++注释
+                    fputc(first, pfOut);
+                    fputc(second, pfOut);
+                    *status = CPP_STATUS;
+                    break;
+                default:
+                    fputc(first, pfOut);
+                    fputc(second, pfOut);
+                    break;
+                }
+    }
+        break;
+    case EOF://表示已读到文件结尾，不用再放了，所以直接状态转换
+        fputc(first, pfOut);
+        *status = END_STATUS;
+        break;
+    default :
+        fputc(first,pfOut);
+        break;
+    }
+}
+
+void DoConvertWork(FILE*pfIn, FILE*pfOut)
+{
+    enum Status status = NUL_STATUS;//定义一个变量，从无状态开始
+    while (status != END_STATUS)
+    {
+        switch (status)
+        {
+            case NUL_STATUS:
+                DoNulStatus(pfIn, pfOut,&status);
+                break;
+            case C_STATUS:
+                DoCStatus(pfIn, pfOut,&status);
+                break;
+            case CPP_STATUS:
+                DoCppStatus(pfIn, pfOut,&status);
+                break;
+        }
+    }
+
+}
+
+void CommentConvert()
+{
+    FILE*pfRead = NULL;
+    FILE*pfWrite = NULL;
+    pfRead = fopen("input.c", "r");
+    if (pfRead == NULL)
+    {
+        perror("open file for read");
+        exit(EXIT_FAILURE);
+    }
+    pfWrite = fopen("output.c", "w");
+    if (pfWrite == NULL)
+    {
+        fclose(pfRead);//如果输出流（pfWrite）为空，需要关掉输入流
+        perror("open file for write");
+        exit(EXIT_FAILURE);
+    }
+    DoConvertWork(pfRead, pfWrite);
+    fclose(pfRead); //函数调用完之后，关掉输入流
+    fclose(pfWrite);//函数调用完之后，关掉输出流
+}
+
+
+
+结果展示：
+input.c
+#include<stdio.h>
+int main()
+{
+    int a = 10//初始化变量a
+    int b = 20;/*初始化变量b*/
+    int tmp = 0;//声明一个临时变量交换变量a和b
+    /*tmp = a;
+    a = b;
+    b = tmp;**/
+    return 0;
+}
+output.c
+#include<stdio.h>
+int main()
+{
+    int a = 10//初始化变量a
+    int b = 20;//初始化变量b
+    int tmp = 0;//声明一个临时变量交换变量a和b
+    //tmp = a;
+//  a = b;
+//  b = tmp;*
+    return 0;
+}
